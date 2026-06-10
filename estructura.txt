@@ -1,0 +1,122 @@
+Listado de rutas de carpetas
+El número de serie del volumen es A0B8-07EC
+C:.
+¦   .env
+¦   .gitignore
+¦   docker-compose.yml
+¦   estructura.py
+¦   estructura.txt
+¦   README.md
+¦   
++---airflow
+¦   +---dags
+¦   +---operators
+¦   +---pipelines
+¦   +---schedules
++---architecture
+¦   +---decisions
+¦   +---diagrams
+¦   +---patterns
+¦   +---tech-stack
++---backend
+¦   ¦   Dockerfile
+¦   ¦   requirements.txt
+¦   ¦   
+¦   +---app
+¦   ¦   ¦   main.py
+¦   ¦   ¦   
+¦   ¦   +---api
+¦   ¦   ¦   ¦   airline.py
+¦   ¦   ¦   ¦   airport.py
+¦   ¦   ¦   ¦   operations.py
+¦   ¦   ¦   ¦   routes.py
+¦   ¦   ¦   ¦   warehouse.py
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---__pycache__
+¦   ¦   ¦           airline.cpython-311.pyc
+¦   ¦   ¦           airport.cpython-311.pyc
+¦   ¦   ¦           warehouse.cpython-311.pyc
+¦   ¦   ¦           
+¦   ¦   +---core
+¦   ¦   ¦   ¦   database.py
+¦   ¦   ¦   ¦   init_warehouse.py
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---__pycache__
+¦   ¦   ¦           database.cpython-311.pyc
+¦   ¦   ¦           
+¦   ¦   +---models
+¦   ¦   +---repositories
+¦   ¦   ¦   ¦   airline_repository.py
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---__pycache__
+¦   ¦   ¦           airline_repository.cpython-311.pyc
+¦   ¦   ¦           
+¦   ¦   +---schemas
+¦   ¦   ¦   ¦   airline.py
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---__pycache__
+¦   ¦   ¦           airline.cpython-311.pyc
+¦   ¦   ¦           
+¦   ¦   +---services
+¦   ¦   ¦   ¦   airline_service.py
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---__pycache__
+¦   ¦   ¦           airline_service.cpython-311.pyc
+¦   ¦   ¦           
+¦   ¦   +---warehouse
+¦   ¦   ¦       aviation.db
+¦   ¦   ¦       
+¦   ¦   +---__pycache__
+¦   ¦           main.cpython-311.pyc
+¦   ¦           
+¦   +---data
+¦   ¦       airport_geo.csv
+¦   ¦       
+¦   +---tests
++---data-warehouse
+¦   ¦   warehouse.duckdb
+¦   ¦   
+¦   +---dimensions
+¦   +---facts
+¦   +---kpis
+¦   +---marts
+¦   +---parquet
+¦   +---raw
+¦   +---sql
+¦   +---staging
++---datasets
+¦       airline_2m.csv
+¦       
++---docs
+¦   +---api
+¦   +---deployment
+¦   +---onboarding
+¦   +---uml
++---frontend
+¦   ¦   app.py
+¦   ¦   Dockerfile
+¦   ¦   
+¦   +---components
+¦   +---crud
+¦   +---dashboards
+¦   +---pages
+¦   +---static
+¦       +---leaflet
+¦               leaflet.css
+¦               leaflet.js
+¦               marker-icon.png
+¦               marker-shadow.png
+¦               
++---infrastructure
+¦   +---configs
+¦   +---docker
+¦   +---duckdb
+¦   +---postgres
++---prompts
+¦   +---claude
+¦   +---templates
++---requirements
+    +---business
+    +---functional
+    +---non-functional
+    +---rules
