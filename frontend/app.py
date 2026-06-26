@@ -1,11 +1,14 @@
+import os
 from nicegui import ui, app
 
 app.add_static_files(
     '/static',
     'static'
 )
-#from fastapi.staticfiles import StaticFiles
 import requests
+import pages.login
+import pages.register
+import pages.shipments
 
 API_URL = 'http://backend:8000'
 
@@ -291,7 +294,7 @@ INPUTS
 
 </style>
 
-""")
+""", shared=True)
 
 # =====================================================
 # API FUNCTIONS
@@ -445,9 +448,7 @@ def create_airline():
 # MAIN CONTENT
 # =====================================================
 
-content = ui.column().classes(
-    'main-content'
-)
+content = None  # set inside main_page()
 
 # =====================================================
 # DASHBOARD
@@ -2319,103 +2320,252 @@ def show_import():
                 )
             ).classes('sidebar-btn')
 
+def show_shipments():
+    from auth import get_current_user
+    user = get_current_user()
+
+    content.clear()
+
+    with content:
+        ui.label('📦 Mis Solicitudes de Envío').classes('title')
+        ui.separator()
+
+        with ui.card().classes('main-card'):
+            ui.label('Nueva Solicitud').style(
+                'font-size:18px; font-weight:bold; color:white; margin-bottom:16px'
+            )
+
+            origin_input      = ui.input(label='Origen').props('filled').classes('w-full')
+            ui.space().style('height:8px')
+            destination_input = ui.input(label='Destino').props('filled').classes('w-full')
+            ui.space().style('height:8px')
+            cargo_type_input  = ui.input(label='Tipo de carga').props('filled').classes('w-full')
+            ui.space().style('height:8px')
+            weight_input      = ui.number(
+                label='Peso (kg)', min=0.01, format='%.2f'
+            ).props('filled').classes('w-full')
+            ui.space().style('height:8px')
+            date_input        = ui.input(
+                label='Fecha', placeholder='AAAA-MM-DD'
+            ).props('type=date filled').classes('w-full')
+
+            def do_create():
+                try:
+                    resp = requests.post(
+                        f'{API_URL}/shipments/',
+                        json={
+                            'client_id':    user['user_id'],
+                            'origin':       origin_input.value,
+                            'destination':  destination_input.value,
+                            'cargo_type':   cargo_type_input.value,
+                            'weight_kg':    weight_input.value,
+                            'request_date': date_input.value,
+                        },
+                        timeout=10
+                    )
+                    if resp.status_code == 201:
+                        ui.notify('Solicitud de envío creada exitosamente', color='positive')
+                        load_shipments()
+                    else:
+                        detail = resp.json().get('detail', 'Error al crear la solicitud')
+                        ui.notify(detail, color='negative')
+                except Exception:
+                    ui.notify('No se pudo conectar con el servidor', color='negative')
+
+            ui.button('Crear solicitud', on_click=do_create).classes('sidebar-btn')
+
+        list_container = ui.column().style('margin-top:16px')
+
+    def do_cancel(request_id: int):
+        try:
+            resp = requests.put(
+                f'{API_URL}/shipments/{request_id}/cancel',
+                json={'client_id': user['user_id']},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                ui.notify('Solicitud cancelada exitosamente', color='positive')
+                load_shipments()
+            else:
+                detail = resp.json().get('detail', 'Error al cancelar la solicitud')
+                ui.notify(detail, color='negative')
+        except Exception:
+            ui.notify('No se pudo conectar con el servidor', color='negative')
+
+    def load_shipments():
+        list_container.clear()
+        with list_container:
+            try:
+                resp = requests.get(
+                    f'{API_URL}/shipments/my',
+                    params={'client_id': user['user_id']},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()['data']
+                    if not data:
+                        ui.label('No tienes solicitudes de envío registradas.').style(
+                            'color:#94a3b8; font-size:14px'
+                        )
+                    else:
+                        columns = [
+                            {'name': 'request_id',  'label': 'ID',        'field': 'request_id'},
+                            {'name': 'origin',       'label': 'Origen',    'field': 'origin'},
+                            {'name': 'destination',  'label': 'Destino',   'field': 'destination'},
+                            {'name': 'cargo_type',   'label': 'Tipo',      'field': 'cargo_type'},
+                            {'name': 'weight_kg',    'label': 'Peso (kg)', 'field': 'weight_kg'},
+                            {'name': 'request_date', 'label': 'Fecha',     'field': 'request_date'},
+                            {'name': 'status',       'label': 'Estado',    'field': 'status'},
+                            {'name': 'actions',      'label': 'Acciones',  'field': 'actions'},
+                        ]
+                        table = ui.table(columns=columns, rows=data).classes('w-full')
+                        table.add_slot('body-cell-actions', r'''
+                            <q-td :props="props">
+                                <q-btn
+                                    v-if="props.row.status === 'Pendiente'"
+                                    label="Cancelar"
+                                    color="negative"
+                                    size="sm"
+                                    flat
+                                    @click="$parent.$emit('cancel', props.row)"
+                                />
+                            </q-td>
+                        ''')
+                        table.on('cancel', lambda e: do_cancel(e.args['request_id']))
+                else:
+                    ui.notify('Error al cargar solicitudes', color='negative')
+            except Exception:
+                ui.notify('No se pudo conectar con el servidor', color='negative')
+
+    load_shipments()
+
 # =====================================================
-# SIDEBAR
+# MAIN PAGE
 # =====================================================
 
-with ui.column().classes('sidebar'):
+@ui.page('/')
+def main_page():
+    global content
+    from auth import check_auth, get_current_user, logout
+    if not check_auth():
+        ui.navigate.to('/login')
+        return
+    user = get_current_user()
+    rol = user.get('rol', '')
 
-    ui.label(
-        '✈ AeroVision AI'
-    ).style(
-        '''
-        font-size:42px;
-        font-weight:bold;
-        color:#60a5fa;
-        '''
-    )
-
-    ui.label(
-        'Enterprise Big Data Platform'
-    ).style(
-        'color:#cbd5e1'
-    )
-
-    ui.separator()
-
-    ui.button(
-        '📊 Dashboard',
-        on_click=show_dashboard
-    ).classes('sidebar-btn')
-
-    ui.button(
-        '🗄 Warehouse',
-        on_click=show_warehouse
-    ).classes('sidebar-btn')
-
-    ui.button(
-        '✈ CRUD Aerolíneas',
-        on_click=show_airlines
-    ).classes('sidebar-btn')
-
-    ui.button(
-        '🛫 CRUD Airports',
-        on_click=show_airports
-    ).classes('sidebar-btn')
-
-    ui.button(
-    '🛣 CRUD Routes',
-    on_click=show_routes
-    ).classes('sidebar-btn')
-
-    ui.button(
-    '✈ CRUD AIRCRAFT',
-    on_click=show_aircraft
-    ).classes(
-    'sidebar-btn'
-    )
-
-    ui.button(
-        '🗺️ Flight Map',
-        on_click=show_flight_map
-    ).classes('sidebar-btn')
-
-    ui.button(
-    '🛫 Operations Center',
-    on_click=show_operations_center
-    ).classes('sidebar-btn')
-
-    ui.button(
-        '📦 Import Dataset',
-        on_click=show_import
-    ).classes('sidebar-btn')
-
-    ui.space()
-
-    with ui.card().style(
-        '''
-        background:rgba(255,255,255,0.08);
-        border-radius:24px;
-        '''
-    ):
+    content = ui.column().classes('main-content')
+    print("ROL:", rol)
+    with ui.column().classes('sidebar'):
 
         ui.label(
-            '🤖 AI Analytics'
+            '✈ AeroVision AI'
         ).style(
-            'font-size:22px;font-weight:bold'
+            '''
+            font-size:42px;
+            font-weight:bold;
+            color:#60a5fa;
+            '''
         )
 
         ui.label(
-            'Advanced aviation operational analytics.'
+            'Enterprise Big Data Platform'
+        ).style(
+            'color:#cbd5e1'
         )
 
-# =====================================================
-# INITIAL PAGE
-# =====================================================
+        ui.separator()
 
-show_dashboard()
+        _b_dash = ui.button(
+            '📊 Dashboard',
+            on_click=show_dashboard
+        ).classes('sidebar-btn')
+
+        _b_wh = ui.button(
+            '🗄 Warehouse',
+            on_click=show_warehouse
+        ).classes('sidebar-btn')
+
+        _b_airl = ui.button(
+            '✈ CRUD Aerolíneas',
+            on_click=show_airlines
+        ).classes('sidebar-btn')
+
+        _b_airp = ui.button(
+            '🛫 CRUD Airports',
+            on_click=show_airports
+        ).classes('sidebar-btn')
+
+        _b_rout = ui.button(
+            '🛣 CRUD Routes',
+            on_click=show_routes
+        ).classes('sidebar-btn')
+
+        _b_airc = ui.button(
+            '✈ CRUD AIRCRAFT',
+            on_click=show_aircraft
+        ).classes('sidebar-btn')
+
+        _b_fmap = ui.button(
+            '🗺️ Flight Map',
+            on_click=show_flight_map
+        ).classes('sidebar-btn')
+
+        _b_ops = ui.button(
+            '🛫 Operations Center',
+            on_click=show_operations_center
+        ).classes('sidebar-btn')
+
+        _b_imp = ui.button(
+            '📦 Import Dataset',
+            on_click=show_import
+        ).classes('sidebar-btn')
+
+        _b_ship = ui.button(
+            '📦 Mis Envíos',
+            on_click=show_shipments
+        ).classes('sidebar-btn')
+
+        ui.space()
+
+        _b_dash.visible = rol in ('administrador', 'analista')
+        _b_wh.visible   = rol == 'administrador'
+        _b_airl.visible = rol == 'administrador'
+        _b_airp.visible = rol == 'administrador'
+        _b_rout.visible = rol == 'administrador'
+        _b_airc.visible = rol == 'administrador'
+        _b_fmap.visible = rol == 'administrador'
+        _b_ops.visible  = rol == 'administrador'
+        _b_imp.visible  = rol == 'administrador'
+        _b_ship.visible = rol == 'cliente'
+
+        ui.button(
+            '🚪 Cerrar sesión',
+            on_click=lambda: logout()
+        ).classes('sidebar-btn').style(
+            'background: linear-gradient(135deg, #dc2626, #ef4444)'
+        )
+
+        with ui.card().style(
+            '''
+            background:rgba(255,255,255,0.08);
+            border-radius:24px;
+            '''
+        ):
+
+            ui.label(
+                '🤖 AI Analytics'
+            ).style(
+                'font-size:22px;font-weight:bold'
+            )
+
+            ui.label(
+                'Advanced aviation operational analytics.'
+            )
+
+    show_dashboard()
 
 ui.run(
     host='0.0.0.0',
-    port=8080
+    port=8080,
+    storage_secret=os.environ.get('NICEGUI_STORAGE_SECRET', 'aerovision-dev-secret-2026')
 )

@@ -14,6 +14,13 @@ services:
       - ./datasets:/datasets
       - ./data-warehouse:/app/data-warehouse
 
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
   frontend:
 
     build:
@@ -24,5 +31,9 @@ services:
     ports:
       - "8080:8080"
 
+    environment:
+      - NICEGUI_STORAGE_SECRET=aerovision-dev-secret-2026
+
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
