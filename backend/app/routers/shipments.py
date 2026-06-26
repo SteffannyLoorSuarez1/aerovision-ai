@@ -7,6 +7,7 @@ from app.schemas.shipment import (
 from app.services.shipment_service import (
     create_shipment_request,
     get_my_shipments,
+    get_all_shipments_service,
     cancel_shipment_request,
 )
 
@@ -29,6 +30,11 @@ def create_shipment(data: ShipmentCreateRequest):
 @router.get("/my")
 def get_my_shipments_endpoint(client_id: int = Query(...)):
     return {"data": get_my_shipments(client_id)}
+
+
+@router.get("/all")
+def get_all_shipments_endpoint(status: str | None = Query(None)):
+    return {"data": get_all_shipments_service(status)}
 
 
 @router.put("/{request_id}/cancel")

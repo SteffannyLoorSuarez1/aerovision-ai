@@ -292,6 +292,13 @@ INPUTS
     border-color: #60a5fa !important;
 }
 
+.admin-shipments-status-menu {
+
+    z-index: 10000 !important;
+
+    color: #0f172a !important;
+}
+
 </style>
 
 """, shared=True)
@@ -2439,6 +2446,84 @@ def show_shipments():
 
     load_shipments()
 
+def show_admin_shipments():
+    content.clear()
+
+    with content:
+        ui.label('📋 Gestión de Envíos').classes('title')
+        ui.separator()
+
+        try:
+            resp = requests.get(
+                f'{API_URL}/shipments/all',
+                timeout=10,
+            )
+            if resp.status_code != 200:
+                ui.notify('Error al cargar solicitudes', color='negative')
+                return
+
+            all_data = resp.json()['data']
+        except Exception:
+            ui.notify('No se pudo conectar con el servidor', color='negative')
+            return
+
+        if not all_data:
+            ui.label('No hay solicitudes de envío registradas.').style(
+                'color:#94a3b8; font-size:14px'
+            )
+            return
+
+        with ui.card().classes('main-card w-full'):
+            filter_select = ui.select(
+                ['Todas', 'Pendiente', 'Cancelado'],
+                value='Todas',
+                label='Estado',
+            ).props('filled popup-content-class=admin-shipments-status-menu').style('min-width:220px')
+
+            empty_label = ui.label('').style(
+                'color:#94a3b8; font-size:14px; margin-top:12px'
+            )
+
+            columns = [
+                {'name': 'request_id',   'label': 'ID',            'field': 'request_id'},
+                {'name': 'client_name',  'label': 'Cliente',       'field': 'client_name'},
+                {'name': 'client_email', 'label': 'Email',         'field': 'client_email'},
+                {'name': 'origin',       'label': 'Origen',        'field': 'origin'},
+                {'name': 'destination',  'label': 'Destino',       'field': 'destination'},
+                {'name': 'cargo_type',   'label': 'Tipo de carga', 'field': 'cargo_type'},
+                {'name': 'weight_kg',    'label': 'Peso (kg)',     'field': 'weight_kg'},
+                {'name': 'request_date', 'label': 'Fecha',         'field': 'request_date'},
+                {'name': 'status',       'label': 'Estado',        'field': 'status'},
+            ]
+
+            table = ui.table(
+                columns=columns,
+                rows=[],
+                pagination=10,
+            ).classes('w-full')
+
+            def apply_filter():
+                selected = filter_select.value
+                if selected == 'Todas':
+                    filtered = all_data
+                else:
+                    filtered = [
+                        row
+                        for row in all_data
+                        if row['status'] == selected
+                    ]
+
+                table.rows = filtered
+                table.update()
+
+                if not filtered:
+                    empty_label.text = 'No hay solicitudes de envío registradas.'
+                else:
+                    empty_label.text = ''
+
+            filter_select.on('update:model-value', lambda e: apply_filter())
+            apply_filter()
+
 # =====================================================
 # MAIN PAGE
 # =====================================================
@@ -2525,6 +2610,11 @@ def main_page():
             on_click=show_shipments
         ).classes('sidebar-btn')
 
+        _b_admin_ship = ui.button(
+            '📋 Gestión de Envíos',
+            on_click=show_admin_shipments
+        ).classes('sidebar-btn')
+
         ui.space()
 
         _b_dash.visible = rol in ('administrador', 'analista')
@@ -2537,6 +2627,7 @@ def main_page():
         _b_ops.visible  = rol == 'administrador'
         _b_imp.visible  = rol == 'administrador'
         _b_ship.visible = rol == 'cliente'
+        _b_admin_ship.visible = rol in ('administrador', 'analista')
 
         ui.button(
             '🚪 Cerrar sesión',

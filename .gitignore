@@ -19,3 +19,5 @@ datasets/airline_2m.csv
 
 Thumbs.db
 .DS_Store
+
+.agents/

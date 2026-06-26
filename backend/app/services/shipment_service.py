@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from app.repositories.shipment_repository import (
     create_shipment,
     get_shipments_by_client,
+    get_all_shipments,
     get_shipment_by_id,
     cancel_shipment,
 )
@@ -34,6 +35,10 @@ def create_shipment_request(
 
 def get_my_shipments(client_id: int) -> list[dict]:
     return get_shipments_by_client(client_id)
+
+
+def get_all_shipments_service(status: str | None = None) -> list[dict]:
+    return get_all_shipments(status)
 
 
 def cancel_shipment_request(request_id: int, client_id: int) -> None:

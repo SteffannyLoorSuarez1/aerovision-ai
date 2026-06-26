@@ -51,6 +51,51 @@ def get_shipments_by_client(client_id: int) -> list[dict]:
     ]
 
 
+def get_all_shipments(status: str | None = None) -> list[dict]:
+    query = """
+        SELECT
+            s.request_id,
+            s.client_id,
+            COALESCE(u.nombre, '[Usuario eliminado]') AS client_name,
+            COALESCE(u.email, '[sin email]') AS client_email,
+            s.origin,
+            s.destination,
+            s.cargo_type,
+            s.weight_kg,
+            s.request_date,
+            s.status,
+            CAST(s.created_at AS VARCHAR) AS created_at
+        FROM fact_shipment_request s
+        LEFT JOIN dim_users u ON s.client_id = u.id
+    """
+    params = []
+
+    if status is not None:
+        query += " WHERE s.status = ?"
+        params.append(status)
+
+    query += " ORDER BY s.request_id DESC"
+
+    rows = conn.execute(query, params).fetchall()
+
+    return [
+        {
+            'request_id':   row[0],
+            'client_id':    row[1],
+            'client_name':  row[2],
+            'client_email': row[3],
+            'origin':       row[4],
+            'destination':  row[5],
+            'cargo_type':   row[6],
+            'weight_kg':    row[7],
+            'request_date': row[8],
+            'status':       row[9],
+            'created_at':   row[10],
+        }
+        for row in rows
+    ]
+
+
 def get_shipment_by_id(request_id: int) -> dict | None:
     row = conn.execute(
         """
